@@ -18,6 +18,9 @@ namespace GB_FileManager
         private const int MINIMIZE = 6;
         private const int RESTORE = 9;
 
+        // Разделитель
+        public static string div = "| ";
+
         static void Main(string[] args)
         {
             Console.SetWindowSize(Console.LargestWindowWidth, Console.LargestWindowHeight);
@@ -30,7 +33,7 @@ namespace GB_FileManager
             {
                 Console.Clear();
 
-                PrintDirectory(dirInfo);
+                PrintDirectory(dirInfo, 5);
 
 
                 switch (Console.ReadKey().Key)
@@ -50,16 +53,20 @@ namespace GB_FileManager
         /// Выводит на экран папки и файлы каталога
         /// </summary>
         /// <param name="di"></param>
-        public static void PrintDirectory(DirectoryInfo di)
+        public static void PrintDirectoriesSplitScreen(DirectoryInfo dInfoLeft, DirectoryInfo dInfoRight, int selectedLine, int activeTable)
         {
             // Размеры столбцов таблицы
             int fileNameColumn = 40;
             int extentionColumn = 10;
             int fileLengthColumn = 10;
 
-            // Разделитель
-            string div = "| ";
+            List<string> left = CreateDirectoryList(d)
 
+
+        }
+
+        static List<string> CreateDirectoryList(DirectoryInfo di, int fileNameColumn, int creationDateColumn, int extentionColumn, int sizeColumn, int )
+        {
             var fileList = di.GetFiles();
             var dirList = di.GetDirectories();
 
@@ -68,13 +75,11 @@ namespace GB_FileManager
             for (int i = 0; i < dirList.Length; i++)
             {
                 StringBuilder sb = new StringBuilder();
-                sb.Append(div)
-                  .Append(CutString(dirList[i].Name, fileNameColumn))
+                sb.Append(CutString(dirList[i].Name, fileNameColumn))
                   .Append(div)
                   .Append("Папка".PadRight(extentionColumn))
                   .Append(div)
-                  .Append(" ".ToString().PadRight(fileLengthColumn))
-                  .Append(div);
+                  .Append(" ".ToString().PadRight(sizeColumn));
 
                 table.Add(sb.ToString());
             }
@@ -82,24 +87,26 @@ namespace GB_FileManager
             for (int i = 0; i < fileList.Length; i++)
             {
                 StringBuilder sb = new StringBuilder();
-                sb.Append(div)
-                    .Append(CutString(fileList[i].Name, fileNameColumn))
-                    .Append(div)
-                    .Append(CutString(fileList[i].Extension, extentionColumn))
-                    .Append(div)
-                    .Append(fileList[i].Length.ToString().PadRight(fileLengthColumn))
-                    .Append(div);
+                sb.Append(CutString(fileList[i].Name, fileNameColumn))
+                  .Append(div)
+                  .Append(CutString(fileList[i].Extension, extentionColumn))
+                  .Append(div)
+                  .Append(fileList[i].Length.ToString().PadRight(sizeColumn))
+                  .Append(div)
+                  .Append(fileList[i].CreationTime.ToShortTimeString().PadRight(sizeColumn));
 
                 table.Add(sb.ToString());
             }
 
-            Console.WriteLine(di.FullName);
-            foreach (string s in table)
-            {
-                Console.WriteLine(s);
-            }
+            return table;
         }
 
+        /// <summary>
+        /// Сокращает строку до выбранной длинны
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="maxLength"></param>
+        /// <returns></returns>
         static string CutString(string str, int maxLength)
         {
             if (str.Length <= maxLength)
