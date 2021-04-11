@@ -18,23 +18,29 @@ namespace GB_FileManager
         private const int MINIMIZE = 6;
         private const int RESTORE = 9;
 
-        // Разделитель
-        public static string div = "| ";
+
+        static string div = "│";
 
         static void Main(string[] args)
         {
+
             Console.SetWindowSize(Console.LargestWindowWidth, Console.LargestWindowHeight);
             ShowWindow(ThisConsole, MAXIMIZE);
+            //Console.SetWindowSize(Console.LargestWindowWidth, Console.LargestWindowHeight);
 
-            string path = Directory.GetCurrentDirectory();
-            var dirInfo = new DirectoryInfo(path);
+            FileManager fm = new FileManager();
+
+
 
             while (true)
             {
                 Console.Clear();
 
-                PrintDirectory(dirInfo, 5);
+                fm.Print();
 
+
+                Console.SetCursorPosition(0, 0);
+                Console.SetCursorPosition(0, Console.WindowHeight);
 
                 switch (Console.ReadKey().Key)
                 {
@@ -42,84 +48,17 @@ namespace GB_FileManager
                         return;
 
                     case ConsoleKey.F5:
-                        dirInfo = dirInfo.Parent ?? dirInfo;
+                        //dirInfoL = dirInfoL.Parent ?? dirInfoL;
                         break;
 
                 }
             }
 
         }
-        /// <summary>
-        /// Выводит на экран папки и файлы каталога
-        /// </summary>
-        /// <param name="di"></param>
-        public static void PrintDirectoriesSplitScreen(DirectoryInfo dInfoLeft, DirectoryInfo dInfoRight, int selectedLine, int activeTable)
-        {
-            // Размеры столбцов таблицы
-            int fileNameColumn = 40;
-            int extentionColumn = 10;
-            int fileLengthColumn = 10;
-
-            List<string> left = CreateDirectoryList(d)
 
 
-        }
 
-        static List<string> CreateDirectoryList(DirectoryInfo di, int fileNameColumn, int creationDateColumn, int extentionColumn, int sizeColumn, int )
-        {
-            var fileList = di.GetFiles();
-            var dirList = di.GetDirectories();
 
-            List<string> table = new List<string>();
 
-            for (int i = 0; i < dirList.Length; i++)
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.Append(CutString(dirList[i].Name, fileNameColumn))
-                  .Append(div)
-                  .Append("Папка".PadRight(extentionColumn))
-                  .Append(div)
-                  .Append(" ".ToString().PadRight(sizeColumn));
-
-                table.Add(sb.ToString());
-            }
-
-            for (int i = 0; i < fileList.Length; i++)
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.Append(CutString(fileList[i].Name, fileNameColumn))
-                  .Append(div)
-                  .Append(CutString(fileList[i].Extension, extentionColumn))
-                  .Append(div)
-                  .Append(fileList[i].Length.ToString().PadRight(sizeColumn))
-                  .Append(div)
-                  .Append(fileList[i].CreationTime.ToShortTimeString().PadRight(sizeColumn));
-
-                table.Add(sb.ToString());
-            }
-
-            return table;
-        }
-
-        /// <summary>
-        /// Сокращает строку до выбранной длинны
-        /// </summary>
-        /// <param name="str"></param>
-        /// <param name="maxLength"></param>
-        /// <returns></returns>
-        static string CutString(string str, int maxLength)
-        {
-            if (str.Length <= maxLength)
-            {
-                return str.PadRight(maxLength);
-            }
-
-            if (maxLength < 6)
-            {
-                return str.Substring(0, maxLength);
-            }
-
-            return str.Substring(0, maxLength / 2 - 1) + ".." + str.Substring(str.Length - (maxLength / 2 + 1));
-        }
     }
 }
