@@ -7,10 +7,11 @@
         public int creationInfo;
         public int length;
         public int tableHeight;
+        public int tableWidth;
         public int infoPanelHeight;
         public int commandLineHeight;
         public int headerHeight;
-
+        public int elementsPerPage;
 
         public FMdimentions(int windowWidth, int windowHeight)
         {
@@ -19,11 +20,13 @@
             length = 15;
             infoPanelHeight = 7;
             commandLineHeight = 1;
-            headerHeight = 2;
+            headerHeight = 4;
+            elementsPerPage = 20;
 
-            int tmp = windowWidth / 2 - extension - creationInfo - length;
+            tableWidth = (windowWidth - 10) / 2;
+            int tmp = tableWidth - extension - creationInfo - length;
             fileName = (tmp > 0) ? tmp : 20;
-            tableHeight = windowHeight - headerHeight - commandLineHeight - infoPanelHeight;
+            tableHeight = elementsPerPage + headerHeight + commandLineHeight + infoPanelHeight;
         }
     }
 }

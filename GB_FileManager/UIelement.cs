@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace GB_FileManager
+﻿namespace GB_FileManager
 {
     static class UIelement
     {
