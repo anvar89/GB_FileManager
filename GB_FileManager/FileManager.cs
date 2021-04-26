@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace GB_FileManager
 {
@@ -8,7 +10,7 @@ namespace GB_FileManager
     {
         public FMdimentions Dimentions { get; set; }
 
-        public string TopCornerAndPath => UIelement.ADR + "Path 1: "
+        private string TopCornerAndPath => UIelement.ADR + "Path 1: "
                                         + LeftPath.FullName
                                         + UIelement.ALDs.PadLeft(Dimentions.tableWidth - 8 - LeftPath.FullName.Length, UIelement.H)
                                         + UIelement.ADR + "Path 2: "
@@ -41,7 +43,9 @@ namespace GB_FileManager
                  + UIelement.VL;
         }
 
-        public string Divider2
+        public bool ControlMode => controlByHotKey;
+
+        private string Divider2
         {
             get => UIelement.VRs.PadRight(Dimentions.fileName, UIelement.H)
                  + UIelement.VHs.PadRight(Dimentions.extension, UIelement.H)
@@ -50,7 +54,7 @@ namespace GB_FileManager
                  + UIelement.VL;
         }
 
-        public string BottomCorner
+        private string BottomCorner
         {
             get => UIelement.AURs.PadRight(Dimentions.fileName, UIelement.H)
                  + UIelement.HUs.PadRight(Dimentions.extension, UIelement.H)
@@ -59,15 +63,22 @@ namespace GB_FileManager
                  + UIelement.AUL;
         }
 
+        private string InfoText => controlByHotKey ? "<Up>,<Down> - управление курсором, <Left>, <Right> - переключение активного окна <F10> - выход"
+                                                : "Введите команду";
+
         public DirectoryInfo LeftPath { get; set; }
         public DirectoryInfo RightPath { get; set; }
-        public bool RightPathActive 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool RightPathActive
         {
             get => rightPathActive;
             set
             {
                 rightPathActive = value;
-                
+
                 if (!rightPathActive)
                 {
                     selectedRow = selectedRow < leftList[leftPageNum].Length ? selectedRow : leftList[leftPageNum].Length;
@@ -76,14 +87,16 @@ namespace GB_FileManager
                 {
                     selectedRow = selectedRow < rightList[rightPageNum].Length ? selectedRow : rightList[rightPageNum].Length;
                 }
-            } 
-        
+            }
+
         } // true - активна правая колонка, false  - левая
 
-        private int selectedRow; 
+        private int selectedRow;
         private int leftPageNum;
         private int rightPageNum;
-        private bool rightPathActive;
+        private bool rightPathActive; // true - активна правая область
+        private bool controlByHotKey; //true - управление с помощью горячих клавирш
+        private string errorMessage;
 
         // Следующие переменые указывают, что необходимо очистить рабочую область
         private bool cleanLeft;
@@ -96,6 +109,7 @@ namespace GB_FileManager
         {
             Dimentions = new FMdimentions(Console.WindowWidth, Console.WindowHeight);
 
+            errorMessage = "";
             LeftPath = RightPath = new DirectoryInfo(Directory.GetCurrentDirectory());
             leftList = CreateListByPage(LeftPath);
             rightList = CreateListByPage(RightPath);
@@ -115,27 +129,59 @@ namespace GB_FileManager
 
         }
 
+        private void PrintInfoPanel(string message)
+        {
+            string[] text = new string[Dimentions.infoPanelHeight - 2];
+            message = InfoText.PadRight(Dimentions.tableWidth * 2) + message;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                int charNumberPerRow = Dimentions.tableWidth * 2 - 2;
+                if (message.Length > charNumberPerRow * (i + 1))
+                {
+                    text[i] = message.Substring(i * charNumberPerRow, (i + 1) * charNumberPerRow);
+                }
+                else
+                {
+                    text[i] = message.Length > charNumberPerRow * i ? message.Substring(charNumberPerRow * i) : string.Empty;
+                }
+            }
+
+            Console.SetCursorPosition(0, Dimentions.tableHeight - Dimentions.infoPanelHeight + 1);
+            Console.WriteLine(UIelement.ADRs + UIelement.Hs.PadLeft(Dimentions.tableWidth * 2, UIelement.H) + UIelement.ALDs);
+            foreach (var item in text)
+            {
+                Console.WriteLine(UIelement.V + item.PadRight(Dimentions.tableWidth * 2) + UIelement.V);
+            }
+            Console.WriteLine(UIelement.AUR + UIelement.Hs.PadLeft(Dimentions.tableWidth * 2, UIelement.H) + UIelement.AUL);
+
+        }
+
+        public void SwitchControlMode()
+        {
+            controlByHotKey |= true;
+        }
 
         /// <summary>
         /// Выделить строку выше текущей
         /// </summary>
         public void SelectRowUp()
         {
-                if (selectedRow > 0)
+            if (selectedRow > 0)
+            {
+                selectedRow--;
+            }
+            else
+            {
+                if (selectedRow == 0 && ((leftPageNum == 0 && !rightPathActive) || (rightPageNum == 0 && rightPathActive)))
                 {
                     selectedRow--;
                 }
                 else
                 {
-                    if (selectedRow == 0 && ((leftPageNum == 0 && !rightPathActive)||(rightPageNum == 0 && rightPathActive)))
-                    {
-                        selectedRow--;
-                    }
-                    else
-                    {
-                        PrevPage();
-                    }
+                    PrevPage();
                 }
+            }
         }
 
         /// <summary>
@@ -357,6 +403,136 @@ namespace GB_FileManager
         }
 
         /// <summary>
+        /// Копирует каталог или папку согласно передаемым параметрам
+        /// </summary>
+        /// <param name="parameters"></param>
+        public void Copy(string[] parameters)
+        {
+            if (parameters.Length == 0)
+            {
+                // Нет параметров  - копироваие выделенного файла или папки в другую область
+                FileSystemInfo src = rightPathActive ? rightList[rightPageNum][selectedRow] : leftList[leftPageNum][selectedRow];
+                string dst = rightPathActive ? LeftPath.FullName : RightPath.FullName;
+
+                if (src.Attributes == FileAttributes.Directory)
+                {
+                    try
+                    {
+                        CopyDirectory(src.FullName, dst);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(dst);
+                        FileInfo fi = new FileInfo(src.FullName);
+                        fi.CopyTo(dst);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                }
+            }
+            else
+            {
+                if (parameters.Length == 2)
+                {
+                    // 2 параметра - файл/каталог и путь для копирования
+                    FileInfo src = new FileInfo(parameters[0]);
+                    if (src.Exists)
+                    {
+                        Directory.CreateDirectory(parameters[1]);
+                        src.CopyTo(Path.Combine(parameters[1], src.Name));
+                    }
+                    else
+                    {
+                        CopyDirectory(parameters[0], parameters[1]);
+                    }
+                }
+                else
+                {
+                    throw new Exception("Неверное количество параметров");
+                }
+            }
+
+
+        }
+
+        /// <summary>
+        /// Копирует папку, включая вложенные папки и файлы
+        /// </summary>
+        /// <param name="sourceDirName"></param>
+        /// <param name="destDirName"></param>
+        private void CopyDirectory(string sourceDirName, string destDirName)
+        {
+            DirectoryInfo src = new DirectoryInfo(sourceDirName);
+
+            if (!src.Exists)
+            {
+                throw new Exception("Указанной папки не существует");
+            }
+
+            DirectoryInfo[] srcDirs = src.GetDirectories();
+
+            Directory.CreateDirectory(destDirName);
+
+            FileInfo[] files = src.GetFiles();
+            foreach (var file in files)
+            {
+                string path = Path.Combine(destDirName, file.Name);
+                file.CopyTo(path, true);
+            }
+
+            foreach (var dir in srcDirs)
+            {
+                string path = Path.Combine(destDirName, dir.Name);
+                CopyDirectory(dir.FullName, path);
+            }
+        }
+
+        public void DeleteSelectedItem()
+        {
+            FileSystemInfo deletingElement = rightPathActive ? rightList[rightPageNum][selectedRow] : leftList[leftPageNum][selectedRow];
+            deletingElement.Delete();
+            return;
+        }
+
+        /// <summary>
+        /// Удаление файла/папки
+        /// </summary>
+        /// <param name="parameters"></param>
+        public void Delete(string[] parameters)
+        {
+            if (parameters.Length == 1)
+            {
+                if (Directory.Exists(parameters[0]))
+                {
+                    // Удаляем папку
+                    Directory.Delete(parameters[0]);
+                    return;
+                }
+                if (File.Exists(parameters[0]))
+                {
+                    // Удаляем файл
+                    File.Delete(parameters[0]);
+                    return;
+                }
+            }
+            else
+            {
+                throw new Exception("Неверное количество параметров");
+            }
+
+            throw new Exception("Неправильный параметр");
+        }
+
+        /// <summary>
         ///  Выводит на экран рабочую область файлового менеджера
         /// </summary>
         public void Print()
@@ -386,7 +562,7 @@ namespace GB_FileManager
 
             // Строка перехода к родительскому каталогу левой части
             Console.SetCursorPosition(1, Dimentions.headerHeight);
-            if (!RightPathActive && selectedRow == -1)
+            if (!RightPathActive && selectedRow == -1 && controlByHotKey)
             {
                 Console.BackgroundColor = ConsoleColor.White;
                 Console.ForegroundColor = ConsoleColor.Black;
@@ -396,7 +572,7 @@ namespace GB_FileManager
 
             // Строка для перехода к родительскому каталогу правой части
             Console.SetCursorPosition(Dimentions.tableWidth + 2, Dimentions.headerHeight);
-            if (RightPathActive && selectedRow == -1)
+            if (RightPathActive && selectedRow == -1 && controlByHotKey)
             {
                 Console.BackgroundColor = ConsoleColor.White;
                 Console.ForegroundColor = ConsoleColor.Black;
@@ -409,7 +585,7 @@ namespace GB_FileManager
             {
                 try
                 {
-                    if (!RightPathActive && selectedRow == i)
+                    if (!RightPathActive && selectedRow == i && controlByHotKey)
                     {
                         Console.BackgroundColor = ConsoleColor.White;
                         Console.ForegroundColor = ConsoleColor.Black;
@@ -419,7 +595,7 @@ namespace GB_FileManager
 
                     Console.ResetColor();
                 }
-                catch 
+                catch
                 {
                     break;
                 }
@@ -430,7 +606,7 @@ namespace GB_FileManager
             {
                 try
                 {
-                    if (RightPathActive && selectedRow == i)
+                    if (RightPathActive && selectedRow == i && controlByHotKey)
                     {
                         Console.BackgroundColor = ConsoleColor.White;
                         Console.ForegroundColor = ConsoleColor.Black;
@@ -440,46 +616,17 @@ namespace GB_FileManager
 
                     Console.ResetColor();
                 }
-                catch 
+                catch
                 {
                     break;
                 }
             }
             Console.SetCursorPosition(0, Dimentions.headerHeight + Dimentions.elementsPerPage + 1);
             Console.WriteLine(DownCornerAndPage);
+            PrintInfoPanel(errorMessage);
+            errorMessage = "";
 
-            Console.SetCursorPosition(0, Console.WindowHeight - 2);
-        }
-
-        public void Delete(string[] parameters)
-        {
-            if (parameters.Length == 0) // Нет параметров - Удалить выденный файл/папку
-            {
-                FileSystemInfo deletingElement = rightPathActive ? rightList[rightPageNum][selectedRow] : leftList[leftPageNum][selectedRow];
-                deletingElement.Delete();
-                return;
-            }
-
-            if (parameters.Length == 1)
-            {
-                if (Directory.Exists(parameters[0]))
-                {
-                    // Удаляем папку
-                    Directory.Delete(parameters[0]);
-                    return;
-                }
-                if (File.Exists(parameters[0]))
-                {
-                    // Удаляем файл
-                    File.Delete(parameters[0]);
-                }
-            }
-            else
-            {
-                throw new Exception("Неверное количество параметров");
-            }
-
-            throw new Exception("Неправильный параметр");
+            //Console.SetCursorPosition(0, Console.WindowHeight - 2);
         }
 
         /// <summary>
@@ -663,5 +810,37 @@ namespace GB_FileManager
             }
 
         }
+
+        public void ExecuteCommand(string command)
+        {
+            string[] arg = command.Split("--");
+            string methodName = arg[0].Trim();
+
+            try
+            {
+                MethodInfo method = this.GetType().GetMethod(methodName);
+
+                if (method is null)
+                {
+                    throw new Exception("Неизвестная комманда");
+                }
+
+                if (arg.Length > 1)
+                {
+                    arg = arg.Where(x => x.Trim() != methodName).ToArray();
+
+                    method.Invoke(this, new[] { arg });
+                }
+                else
+                {
+                    method.Invoke(this, null);
+                }
+            }
+            catch (Exception e)
+            {
+                errorMessage = "Ошибка! " + e.Message;
+            }
+        }
+
     }
 }
