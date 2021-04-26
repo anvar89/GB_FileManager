@@ -96,7 +96,7 @@ namespace GB_FileManager
         private int rightPageNum;
         private bool rightPathActive; // true - активна правая область
         private bool controlByHotKey; //true - управление с помощью горячих клавирш
-        private string errorMessage;
+        private string message;
 
         // Следующие переменые указывают, что необходимо очистить рабочую область
         private bool cleanLeft;
@@ -109,7 +109,7 @@ namespace GB_FileManager
         {
             Dimentions = new FMdimentions(Console.WindowWidth, Console.WindowHeight);
 
-            errorMessage = "";
+            message = "";
             LeftPath = RightPath = new DirectoryInfo(Directory.GetCurrentDirectory());
             leftList = CreateListByPage(LeftPath);
             rightList = CreateListByPage(RightPath);
@@ -139,7 +139,7 @@ namespace GB_FileManager
                 int charNumberPerRow = Dimentions.tableWidth * 2 - 2;
                 if (message.Length > charNumberPerRow * (i + 1))
                 {
-                    text[i] = message.Substring(i * charNumberPerRow, (i + 1) * charNumberPerRow);
+                    text[i] = message.Substring(i * charNumberPerRow, charNumberPerRow -1);
                 }
                 else
                 {
@@ -623,8 +623,8 @@ namespace GB_FileManager
             }
             Console.SetCursorPosition(0, Dimentions.headerHeight + Dimentions.elementsPerPage + 1);
             Console.WriteLine(DownCornerAndPage);
-            PrintInfoPanel(errorMessage);
-            errorMessage = "";
+            PrintInfoPanel(message);
+            message = "";
 
             //Console.SetCursorPosition(0, Console.WindowHeight - 2);
         }
@@ -838,9 +838,63 @@ namespace GB_FileManager
             }
             catch (Exception e)
             {
-                errorMessage = "Ошибка! " + e.Message;
+                message = "Ошибка! " + e.Message;
             }
         }
 
+        public string UserInputHelp()
+        {
+            var methods = this.GetType().GetMethods();
+            string[] methodNames = new string[methods.Length];
+            string userInputPrev = "";
+
+            for (int i = 0; i < methods.Length; i++)
+            {
+                methodNames[i] = methods[i].Name;
+            }
+
+            while (true)
+            {
+                var key = Console.ReadKey();
+
+                if (key.Key == ConsoleKey.Enter)
+                {
+                    break;
+                }
+
+                string userInput = userInputPrev;
+
+                if (char.IsLetterOrDigit(key.KeyChar))
+                {
+                    userInput += key.KeyChar;
+                }
+
+
+                int cursorPositionLeft = Console.CursorLeft;
+                int cursorPositionTop = Console.CursorTop;
+
+                List<string> tmpList = new List<string>();
+                string helpRow = "Возможно, вы имели ввиду: ";
+
+                foreach (string methodName in methodNames)
+                {
+                    if (methodName.StartsWith(userInput))
+                    {
+                        helpRow += methodName + " ";
+                    }
+                }
+
+                PrintInfoPanel(helpRow);
+                Console.SetCursorPosition(cursorPositionLeft, cursorPositionTop);
+
+                userInputPrev = userInput;
+
+            }
+            return userInputPrev;
+        }
+
+        private static string[][] AvaiableMethedsInfo = { new[] { "SwitchControlMode - переключение типа управления" },
+                                                          new[] { "ChangeDirectory - смена каталога", "Параметры: r - правое окно, l - левое окно", "Путь нового каталога"},
+                                                          new[] {};
     }
 }

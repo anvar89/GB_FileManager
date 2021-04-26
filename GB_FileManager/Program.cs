@@ -60,7 +60,7 @@ namespace GB_FileManager
                 }
                 else
                 {
-                    string s = Console.ReadLine();
+                    string s = fm.UserInputHelp();
                     fm.ExecuteCommand(s);
                 }
             }
