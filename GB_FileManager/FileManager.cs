@@ -3,75 +3,37 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace GB_FileManager
 {
     class FileManager
     {
-        public FMdimentions Dimentions { get; set; }
+        public FMConfig Config { get; set; }
 
-        private string TopCornerAndPath => UIelement.ADR + "Path 1: "
-                                        + LeftPath.FullName
-                                        + UIelement.ALDs.PadLeft(Dimentions.tableWidth - 8 - LeftPath.FullName.Length, UIelement.H)
-                                        + UIelement.ADR + "Path 2: "
-                                        + RightPath.FullName
-                                        + UIelement.ALDs.PadLeft(Dimentions.tableWidth - 8 - RightPath.FullName.Length, UIelement.H);
-
-        private string DownCornerAndPage
+        public DirectoryInfo LeftPath
         {
-            get
+            get => leftPath;
+            set
             {
+                leftPath = value;
 
-                string pagesTextLeft = "Стр.: " + (leftPageNum + 1) + "/" + leftList.Count;
-                string pagesTextRight = "Стр.: " + (rightPageNum + 1) + "/" + rightList.Count;
+                Config.LeftPathString = leftPath.FullName;
+            }
+        }
+        public DirectoryInfo RightPath
+        {
 
-                return UIelement.AUR
-                       + pagesTextLeft
-                       + UIelement.AULs.PadLeft(Dimentions.tableWidth - pagesTextLeft.Length, UIelement.H)
-                       + UIelement.AUR
-                       + pagesTextRight
-                       + UIelement.AULs.PadLeft(Dimentions.tableWidth - pagesTextRight.Length, UIelement.H);
+            get => rightPath;
+            set
+            {
+                rightPath = value;
+
+                Config.LeftPathString = rightPath.FullName;
+
             }
         }
 
-        public string Divider
-        {
-            get => UIelement.VRs.PadRight(Dimentions.fileName, UIelement.H)
-                 + UIelement.HDs.PadRight(Dimentions.extension, UIelement.H)
-                 + UIelement.HDs.PadRight(Dimentions.length, UIelement.H)
-                 + UIelement.HDs.PadRight(Dimentions.creationInfo, UIelement.H)
-                 + UIelement.VL;
-        }
-
-        public bool ControlMode => controlByHotKey;
-
-        private string Divider2
-        {
-            get => UIelement.VRs.PadRight(Dimentions.fileName, UIelement.H)
-                 + UIelement.VHs.PadRight(Dimentions.extension, UIelement.H)
-                 + UIelement.VHs.PadRight(Dimentions.length, UIelement.H)
-                 + UIelement.VHs.PadRight(Dimentions.creationInfo, UIelement.H)
-                 + UIelement.VL;
-        }
-
-        private string BottomCorner
-        {
-            get => UIelement.AURs.PadRight(Dimentions.fileName, UIelement.H)
-                 + UIelement.HUs.PadRight(Dimentions.extension, UIelement.H)
-                 + UIelement.HUs.PadRight(Dimentions.length, UIelement.H)
-                 + UIelement.HUs.PadRight(Dimentions.creationInfo, UIelement.H)
-                 + UIelement.AUL;
-        }
-
-        private string InfoText => controlByHotKey ? "<Up>,<Down> - управление курсором, <Left>, <Right> - переключение активного окна <F10> - выход"
-                                                : "Введите команду";
-
-        public DirectoryInfo LeftPath { get; set; }
-        public DirectoryInfo RightPath { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
         public bool RightPathActive
         {
             get => rightPathActive;
@@ -91,12 +53,63 @@ namespace GB_FileManager
 
         } // true - активна правая колонка, false  - левая
 
+        public string Divider
+        {
+            get => UIelement.VRs.PadRight(Config.FileNameColumn, UIelement.H)
+                 + UIelement.HDs.PadRight(Config.ExtensionColumn, UIelement.H)
+                 + UIelement.HDs.PadRight(Config.LengthColumn, UIelement.H)
+                 + UIelement.HDs.PadRight(Config.CreationInfoColumn, UIelement.H)
+                 + UIelement.VL;
+        }
+
+        public bool ControlMode => controlByHotKey;
+
+        private string TopCornerAndPath => UIelement.ADR + "Path 1: "
+                                + LeftPath.FullName
+                                + UIelement.ALDs.PadLeft(Config.TableWidth - 8 - LeftPath.FullName.Length, UIelement.H)
+                                + UIelement.ADR + "Path 2: "
+                                + RightPath.FullName
+                                + UIelement.ALDs.PadLeft(Config.TableWidth - 8 - RightPath.FullName.Length, UIelement.H);
+
+        private string DownCornerAndPage
+        {
+            get
+            {
+
+                string pagesTextLeft = "Стр.: " + (leftPageNum + 1) + "/" + (leftList.Count == 0 ? 1 : leftList.Count);
+                string pagesTextRight = "Стр.: " + (rightPageNum + 1) + "/" + (rightList.Count == 0 ? 1 : rightList.Count);
+
+                return UIelement.AUR
+                       + pagesTextLeft
+                       + UIelement.AULs.PadLeft(Config.TableWidth - pagesTextLeft.Length, UIelement.H)
+                       + UIelement.AUR
+                       + pagesTextRight
+                       + UIelement.AULs.PadLeft(Config.TableWidth - pagesTextRight.Length, UIelement.H);
+            }
+        }
+
+        private string Divider2
+        {
+            get => UIelement.VRs.PadRight(Config.FileNameColumn, UIelement.H)
+                 + UIelement.VHs.PadRight(Config.ExtensionColumn, UIelement.H)
+                 + UIelement.VHs.PadRight(Config.LengthColumn, UIelement.H)
+                 + UIelement.VHs.PadRight(Config.CreationInfoColumn, UIelement.H)
+                 + UIelement.VL;
+        }
+
+        private string InfoText => controlByHotKey ? "<Up>,<Down> - управление курсором, <Left>, <Right> - переключение активного окна," +
+                                                     " <F5> - копирование выделенного объекта из активной области в неактиную, <F12> - ручной ввод команд, <Delete> - удаление выделенного объекта" +
+                                                     " <F10> - выход"
+                                                : "Введите команду, параметры команд нужно вводить, указав  --";
+
         private int selectedRow;
         private int leftPageNum;
         private int rightPageNum;
         private bool rightPathActive; // true - активна правая область
         private bool controlByHotKey; //true - управление с помощью горячих клавирш
         private string message;
+        private DirectoryInfo leftPath;
+        private DirectoryInfo rightPath;
 
         // Следующие переменые указывают, что необходимо очистить рабочую область
         private bool cleanLeft;
@@ -105,12 +118,14 @@ namespace GB_FileManager
         private List<FileSystemInfo[]> leftList;
         private List<FileSystemInfo[]> rightList;
 
-        public FileManager()
+        public FileManager(FMConfig config)
         {
-            Dimentions = new FMdimentions(Console.WindowWidth, Console.WindowHeight);
+            Config = config;
 
             message = "";
-            LeftPath = RightPath = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+            LeftPath = new DirectoryInfo(config.LeftPathString);
+            RightPath = new DirectoryInfo(config.RightPathString);
             leftList = CreateListByPage(LeftPath);
             rightList = CreateListByPage(RightPath);
 
@@ -120,26 +135,27 @@ namespace GB_FileManager
             Console.WriteLine(GetRow("Название", "Тип", "Размер", "Дата создания") + GetRow("Название", "Тип", "Размер", "Дата создания"));
             Console.WriteLine(Divider2 + Divider2);
 
-            for (int i = 0; i < Dimentions.elementsPerPage + 1; i++)
+            for (int i = 0; i < Config.ElementsPerPage + 1; i++)
             {
                 Console.WriteLine(GetRow("", "", "", "") + GetRow("", "", "", ""));
             }
 
             Console.WriteLine(DownCornerAndPage);
 
+            controlByHotKey = true;
         }
 
         private void PrintInfoPanel(string message)
         {
-            string[] text = new string[Dimentions.infoPanelHeight - 2];
-            message = InfoText.PadRight(Dimentions.tableWidth * 2) + message;
+            string[] text = new string[Config.InfoPanelHeight - 2];
+            message = InfoText.PadRight(Config.TableWidth * 2) + message;
 
             for (int i = 0; i < text.Length; i++)
             {
-                int charNumberPerRow = Dimentions.tableWidth * 2 - 2;
+                int charNumberPerRow = Config.TableWidth * 2 - 2;
                 if (message.Length > charNumberPerRow * (i + 1))
                 {
-                    text[i] = message.Substring(i * charNumberPerRow, charNumberPerRow -1);
+                    text[i] = message.Substring(i * charNumberPerRow, charNumberPerRow - 1);
                 }
                 else
                 {
@@ -147,19 +163,52 @@ namespace GB_FileManager
                 }
             }
 
-            Console.SetCursorPosition(0, Dimentions.tableHeight - Dimentions.infoPanelHeight + 1);
-            Console.WriteLine(UIelement.ADRs + UIelement.Hs.PadLeft(Dimentions.tableWidth * 2, UIelement.H) + UIelement.ALDs);
+            Console.SetCursorPosition(0, Config.TableHeight - Config.InfoPanelHeight + 1);
+            Console.WriteLine(UIelement.ADRs + UIelement.Hs.PadLeft(Config.TableWidth * 2, UIelement.H) + UIelement.ALDs);
             foreach (var item in text)
             {
-                Console.WriteLine(UIelement.V + item.PadRight(Dimentions.tableWidth * 2) + UIelement.V);
+                Console.WriteLine(UIelement.V + item.PadRight(Config.TableWidth * 2) + UIelement.V);
             }
-            Console.WriteLine(UIelement.AUR + UIelement.Hs.PadLeft(Dimentions.tableWidth * 2, UIelement.H) + UIelement.AUL);
+            Console.WriteLine(UIelement.AUR + UIelement.Hs.PadLeft(Config.TableWidth * 2, UIelement.H) + UIelement.AUL);
 
         }
 
+        /// <summary>
+        /// Этот выполняет смену каталога при управлении с клавиатуры
+        /// </summary>
+        public void KeyAction()
+        {
+            if (selectedRow == -1)
+            {
+                // Выбрана строка "..." - переход к родительскому каталогу
+                GotoParentDirectory();
+                return;
+            }
+
+            string newPath = RightPathActive ? rightList[rightPageNum][selectedRow].FullName : leftList[leftPageNum][selectedRow].FullName;
+            string activePath = RightPathActive ? "r" : "l";
+
+            if (Directory.Exists(newPath))
+            {
+                ChangeDirectory(new[] { activePath, newPath });
+            }
+
+        }
+
+        /// <summary>
+        ///  Переключает управление с комощью клавиатуры и с помощью введённых команд
+        /// </summary>
         public void SwitchControlMode()
         {
-            controlByHotKey |= true;
+            controlByHotKey ^= true;
+        }
+
+        /// <summary>
+        /// Переключает активный каталог
+        /// </summary>
+        public void SwitchActivePath()
+        {
+            RightPathActive ^= true;
         }
 
         /// <summary>
@@ -418,11 +467,11 @@ namespace GB_FileManager
                 {
                     try
                     {
-                        CopyDirectory(src.FullName, dst);
+                        CopyDirectory(src.FullName, Path.Combine(dst, src.Name));
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        throw;
+                        message = "Ошибка! " + e.Message;
                     }
                 }
                 else
@@ -431,11 +480,11 @@ namespace GB_FileManager
                     {
                         Directory.CreateDirectory(dst);
                         FileInfo fi = new FileInfo(src.FullName);
-                        fi.CopyTo(dst);
+                        fi.CopyTo(Path.Combine(dst, src.Name));
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        throw;
+                        message = "Ошибка! " + e.Message;
                     }
                 }
             }
@@ -461,7 +510,8 @@ namespace GB_FileManager
                 }
             }
 
-
+            cleanLeft = true;
+            cleanRight = true;
         }
 
         /// <summary>
@@ -494,6 +544,7 @@ namespace GB_FileManager
                 string path = Path.Combine(destDirName, dir.Name);
                 CopyDirectory(dir.FullName, path);
             }
+
         }
 
         public void DeleteSelectedItem()
@@ -511,57 +562,85 @@ namespace GB_FileManager
         {
             if (parameters.Length == 1)
             {
-                if (Directory.Exists(parameters[0]))
-                {
-                    // Удаляем папку
-                    Directory.Delete(parameters[0]);
-                    return;
-                }
-                if (File.Exists(parameters[0]))
-                {
-                    // Удаляем файл
-                    File.Delete(parameters[0]);
-                    return;
-                }
-            }
-            else
-            {
-                throw new Exception("Неверное количество параметров");
+                DeleteItem(parameters[0]);
             }
 
-            throw new Exception("Неправильный параметр");
+            if (parameters.Length == 0)
+            {
+                if (rightPathActive)
+                {
+                    DeleteItem(rightList[rightPageNum][selectedRow].FullName);
+                }
+                else
+                {
+                    DeleteItem(leftList[leftPageNum][selectedRow].FullName);
+                }
+
+            }
+
+            cleanLeft = true;
+            cleanRight = true;
         }
 
+        private void DeleteItem(string path)
+        {
+            try
+            {
+
+                if (Directory.Exists(path))
+                {
+                    // Удаляем папку
+                    Directory.Delete(path, true);
+                }
+                if (File.Exists(path))
+                {
+                    // Удаляем файл
+                    File.Delete(path);
+                }
+            }
+            catch (Exception e)
+            {
+                message = "Ошибка! " + e.Message;
+            }
+        }
         /// <summary>
         ///  Выводит на экран рабочую область файлового менеджера
         /// </summary>
         public void Print()
         {
-            leftList = CreateListByPage(LeftPath);
-            rightList = CreateListByPage(RightPath);
+            try
+            {
+                leftList = CreateListByPage(LeftPath);
+                rightList = CreateListByPage(RightPath);
+            }
+            catch (Exception e)
+            {
+                message = "Ошибка! " + e.Message;
+                Log(e);
+            }
 
             // Очистка экрана перед выводом
             if (cleanLeft)
             {
-                for (int i = 0; i < Dimentions.elementsPerPage; i++)
+                for (int i = 0; i < Config.ElementsPerPage + 1; i++)
                 {
-                    Console.SetCursorPosition(0, Dimentions.headerHeight + i);
+                    Console.SetCursorPosition(0, Config.HeaderHeight + i);
                     Console.WriteLine(GetRow("", "", "", ""));
                 }
                 cleanLeft = false;
             }
             if (cleanRight)
             {
-                for (int i = 0; i < Dimentions.elementsPerPage; i++)
+                for (int i = 0; i < Config.ElementsPerPage + 1; i++)
                 {
-                    Console.SetCursorPosition(Dimentions.tableWidth + 1, Dimentions.headerHeight + i);
+                    Console.SetCursorPosition(Config.TableWidth + 1, Config.HeaderHeight + i);
                     Console.WriteLine(GetRow("", "", "", ""));
                 }
                 cleanRight = false;
             }
 
             // Строка перехода к родительскому каталогу левой части
-            Console.SetCursorPosition(1, Dimentions.headerHeight);
+            Console.SetCursorPosition(1, Config.HeaderHeight);
             if (!RightPathActive && selectedRow == -1 && controlByHotKey)
             {
                 Console.BackgroundColor = ConsoleColor.White;
@@ -571,7 +650,7 @@ namespace GB_FileManager
             Console.ResetColor();
 
             // Строка для перехода к родительскому каталогу правой части
-            Console.SetCursorPosition(Dimentions.tableWidth + 2, Dimentions.headerHeight);
+            Console.SetCursorPosition(Config.TableWidth + 2, Config.HeaderHeight);
             if (RightPathActive && selectedRow == -1 && controlByHotKey)
             {
                 Console.BackgroundColor = ConsoleColor.White;
@@ -581,7 +660,7 @@ namespace GB_FileManager
             Console.ResetColor();
 
             // Вывод на экран файлов левого каталога
-            for (int i = 0; i < Dimentions.elementsPerPage; i++)
+            for (int i = 0; i < Config.ElementsPerPage; i++)
             {
                 try
                 {
@@ -591,18 +670,19 @@ namespace GB_FileManager
                         Console.ForegroundColor = ConsoleColor.Black;
                     }
 
-                    PrintRow(1, Dimentions.headerHeight + i + 1, leftList[leftPageNum][i]);
+                    PrintRow(1, Config.HeaderHeight + i + 1, leftList[leftPageNum][i]);
 
                     Console.ResetColor();
                 }
-                catch
+                catch (Exception e)
                 {
+                    Log(e);
                     break;
                 }
             }
 
             // Вывод на экран файлов правого каталога
-            for (int i = 0; i < Dimentions.elementsPerPage; i++)
+            for (int i = 0; i < Config.ElementsPerPage; i++)
             {
                 try
                 {
@@ -612,16 +692,19 @@ namespace GB_FileManager
                         Console.ForegroundColor = ConsoleColor.Black;
                     }
 
-                    PrintRow(Dimentions.tableWidth + 2, Dimentions.headerHeight + i + 1, rightList[rightPageNum][i]);
+                    PrintRow(Config.TableWidth + 2, Config.HeaderHeight + i + 1, rightList[rightPageNum][i]);
 
                     Console.ResetColor();
                 }
-                catch
+                catch (Exception e)
                 {
+                    Log(e);
                     break;
                 }
             }
-            Console.SetCursorPosition(0, Dimentions.headerHeight + Dimentions.elementsPerPage + 1);
+
+            Console.ResetColor();
+            Console.SetCursorPosition(0, Config.HeaderHeight + Config.ElementsPerPage + 1);
             Console.WriteLine(DownCornerAndPage);
             PrintInfoPanel(message);
             message = "";
@@ -639,24 +722,27 @@ namespace GB_FileManager
         {
             // Заполнение колонки "Наименование"
             Console.SetCursorPosition(left, top);
-            Console.WriteLine(GetCellString(element.Name, Dimentions.fileName));
+            Console.WriteLine(GetCellString(element.Name, Config.FileNameColumn));
 
             // Заполнение столбца "Тип"
-            Console.SetCursorPosition(left + Dimentions.fileName, top);
-            string ext = element.Attributes == FileAttributes.Directory ? "Папка" : GetCellString(element.Extension, Dimentions.extension);
+            Console.SetCursorPosition(left + Config.FileNameColumn, top);
+            string ext = element.Attributes == FileAttributes.Directory ? "Папка" : GetCellString(element.Extension, Config.ExtensionColumn);
             Console.WriteLine(ext);
 
             // Заполнение столбца "Размер"
-            Console.SetCursorPosition(left + Dimentions.fileName + Dimentions.extension, top);
+            Console.SetCursorPosition(left + Config.FileNameColumn + Config.ExtensionColumn, top);
             try
             {
                 FileInfo fi = new FileInfo(element.FullName);
                 Console.WriteLine(FileLengthText(fi.Length));
             }
-            catch { }
+            catch (Exception e)
+            {
+                Log(e);
+            }
 
             // Заполнение столбца "Создан"
-            Console.SetCursorPosition(left + Dimentions.fileName + Dimentions.extension + Dimentions.length, top);
+            Console.SetCursorPosition(left + Config.FileNameColumn + Config.ExtensionColumn + Config.LengthColumn, top);
             Console.WriteLine(element.CreationTime.ToString());
         }
 
@@ -668,11 +754,13 @@ namespace GB_FileManager
         public List<FileSystemInfo[]> CreateListByPage(DirectoryInfo di)
         {
             List<FileSystemInfo[]> result = new List<FileSystemInfo[]>();
-            Queue<FileSystemInfo> elements = new Queue<FileSystemInfo>(di.GetFileSystemInfos());
+            FileSystemInfo[] array = di.GetFileSystemInfos().OrderBy(x => x.Extension).ThenBy(x => x.Name).ToArray();
+
+            Queue<FileSystemInfo> elements = new Queue<FileSystemInfo>(array);
 
             while (elements.Count > 0)
             {
-                int arraySize = elements.Count > Dimentions.elementsPerPage ? Dimentions.elementsPerPage : elements.Count;
+                int arraySize = elements.Count > Config.ElementsPerPage ? Config.ElementsPerPage : elements.Count;
                 FileSystemInfo[] currPage = new FileSystemInfo[arraySize];
 
                 for (int i = 0; i < currPage.Length; i++)
@@ -716,9 +804,9 @@ namespace GB_FileManager
 
             while (true)
             {
-                string[] currentPage = new string[Dimentions.tableHeight];
+                string[] currentPage = new string[Config.TableHeight];
 
-                if (globalList.Count < Dimentions.tableHeight)
+                if (globalList.Count < Config.TableHeight)
                 {
                     int i = 0;
 
@@ -768,49 +856,58 @@ namespace GB_FileManager
                 return str.Substring(0, maxLength);
             }
 
-            return str.Substring(0, maxLength / 2 - 1) + ".." + str.Substring(str.Length - (maxLength / 2 + 1));
+            return str.Substring(0, maxLength / 2 - 1) + ".." + str.Substring(str.Length - maxLength / 2 + 2);
         }
 
         private string GetRow(string filename, string extension, string length, string creationDate)
         {
-            return UIelement.V + GetCellString(filename, Dimentions.fileName - 1).PadRight(Dimentions.fileName - 1)
-                 + UIelement.V + GetCellString(extension, Dimentions.extension - 1).PadRight(Dimentions.extension - 1)
-                 + UIelement.V + GetCellString(length, Dimentions.length - 1).PadRight(Dimentions.length - 1)
-                 + UIelement.V + GetCellString(creationDate, Dimentions.creationInfo - 1).PadRight(Dimentions.creationInfo - 1)
+            return UIelement.V + GetCellString(filename, Config.FileNameColumn - 1).PadRight(Config.FileNameColumn - 1)
+                 + UIelement.V + GetCellString(extension, Config.ExtensionColumn - 1).PadRight(Config.ExtensionColumn - 1)
+                 + UIelement.V + GetCellString(length, Config.LengthColumn - 1).PadRight(Config.LengthColumn - 1)
+                 + UIelement.V + GetCellString(creationDate, Config.CreationInfoColumn - 1).PadRight(Config.CreationInfoColumn - 1)
                  + UIelement.V;
         }
 
         private string FileLengthText(long lengthBytes)
         {
-            double lengthKBytes = (double)lengthBytes / 1024;
-
-            if (lengthKBytes < 1024)
+            if (lengthBytes < 1024)
             {
-                return $"{lengthKBytes:F2} Кб";
+                return $"{lengthBytes} байт";
             }
             else
             {
-                double lengthMBytes = lengthKBytes / 1024;
-                if (lengthMBytes < 1024)
+                long lengthKBytes = lengthBytes / 1024;
+                if (lengthKBytes < 1024)
                 {
-                    return $"{lengthMBytes:F2} Мб";
+                    return $"{lengthKBytes} Кб";
                 }
                 else
                 {
-                    double lengthGBytes = lengthMBytes / 1024;
+                    long lengthMBytes = lengthKBytes / 1024;
                     if (lengthMBytes < 1024)
                     {
-                        return $"{lengthGBytes:F2} Гб";
+                        return $"{lengthMBytes} Мб";
                     }
                     else
                     {
-                        return $"{lengthGBytes / 1024:F2} Тб";
+                        double lengthGBytes = lengthMBytes / 1024;
+                        if (lengthMBytes < 1024)
+                        {
+                            return $"{lengthGBytes} Гб";
+                        }
+                        else
+                        {
+                            return $"{lengthGBytes / 1024} Тб";
+                        }
                     }
                 }
             }
-
         }
 
+        /// <summary>
+        /// Поиск методов в соответвии с введённой командой и её вызов
+        /// </summary>
+        /// <param name="command"></param>
         public void ExecuteCommand(string command)
         {
             string[] arg = command.Split("--");
@@ -835,18 +932,32 @@ namespace GB_FileManager
                 {
                     method.Invoke(this, null);
                 }
+
+                // Очистка строки ввода команды
+                int cursorPositionTop = Console.CursorTop;
+                Console.SetCursorPosition(0, cursorPositionTop);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.SetCursorPosition(0, cursorPositionTop);
             }
             catch (Exception e)
             {
                 message = "Ошибка! " + e.Message;
+                Log(e);
             }
         }
 
+        /// <summary>
+        ///  Выводит подсказку при вводе команды
+        /// </summary>
+        /// <returns></returns>
         public string UserInputHelp()
         {
+            int cursorPositionTop = Console.CursorTop;
+
             var methods = this.GetType().GetMethods();
             string[] methodNames = new string[methods.Length];
-            string userInputPrev = "";
+
+            StringBuilder sb = new StringBuilder();
 
             for (int i = 0; i < methods.Length; i++)
             {
@@ -855,30 +966,42 @@ namespace GB_FileManager
 
             while (true)
             {
-                var key = Console.ReadKey();
+                var key = Console.ReadKey(true);
 
                 if (key.Key == ConsoleKey.Enter)
                 {
                     break;
                 }
 
-                string userInput = userInputPrev;
 
                 if (char.IsLetterOrDigit(key.KeyChar))
                 {
-                    userInput += key.KeyChar;
+                    sb.Append(key.KeyChar);
                 }
 
+                if (key.Key == ConsoleKey.Backspace)
+                {
+                    if (sb.Length > 0)
+                    {
+                        sb.Length--;
+                    }
+                }
+
+                // Очиистка строки ввода команды
+                Console.SetCursorPosition(0, cursorPositionTop);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.SetCursorPosition(0, cursorPositionTop);
+
+                //Промежуточный вывод 
+                Console.Write(sb.ToString());
 
                 int cursorPositionLeft = Console.CursorLeft;
-                int cursorPositionTop = Console.CursorTop;
-
                 List<string> tmpList = new List<string>();
                 string helpRow = "Возможно, вы имели ввиду: ";
 
                 foreach (string methodName in methodNames)
                 {
-                    if (methodName.StartsWith(userInput))
+                    if (methodName.StartsWith(sb.ToString()))
                     {
                         helpRow += methodName + " ";
                     }
@@ -886,15 +1009,19 @@ namespace GB_FileManager
 
                 PrintInfoPanel(helpRow);
                 Console.SetCursorPosition(cursorPositionLeft, cursorPositionTop);
-
-                userInputPrev = userInput;
-
             }
-            return userInputPrev;
+            return sb.ToString();
         }
 
-        private static string[][] AvaiableMethedsInfo = { new[] { "SwitchControlMode - переключение типа управления" },
-                                                          new[] { "ChangeDirectory - смена каталога", "Параметры: r - правое окно, l - левое окно", "Путь нового каталога"},
-                                                          new[] {};
+        public static void Log(Exception e)
+        {
+            try
+            {
+                string fileName = "log_" + DateTime.Now.ToShortDateString() + ".txt";
+                string message = "\n" + DateTime.Now.ToLongTimeString() + " - " + e.GetType() + " - " + e.Message;
+                File.AppendAllText(fileName, message);
+            }
+            catch { }
+        }
     }
 }

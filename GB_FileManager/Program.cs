@@ -1,36 +1,65 @@
 ﻿using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace GB_FileManager
 {
     class Program
     {
-
-
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
+            string configFileName = "config.json";
+
             Console.SetWindowSize(Console.LargestWindowWidth, Console.LargestWindowHeight);
+            FileManager fm;
+            FMConfig config;
 
-            FileManager fm = new FileManager();
+            // Чтение конфигурационного файла
+            using (FileStream fs = new FileStream(configFileName, FileMode.OpenOrCreate))
+            {
+                try
+                {
+                    config = await JsonSerializer.DeserializeAsync<FMConfig>(fs);
+                }
+                catch (Exception e)
+                {
+                    // При неудачном чтении загружаются значения по умолчанию
+                    FileManager.Log(e);
+                    config = new FMConfig()
+                    {
+                        LeftPathString = Directory.GetCurrentDirectory(),
+                        RightPathString = Directory.GetCurrentDirectory(),
+                        ExtensionColumn = 12,
+                        CreationInfoColumn = 20,
+                        LengthColumn = 13,
+                        InfoPanelHeight = 7,
+                        ElementsPerPage = 40,
+                    };
+                }
+            }
 
-
+            fm = new FileManager(config);
 
             while (true)
             {
                 //Console.Clear();
-
                 fm.Print();
-
 
                 if (fm.ControlMode)
                 {
                     switch (Console.ReadKey().Key)
                     {
+                        case ConsoleKey.F12:
+                            fm.SwitchControlMode();
+                            break;
+
                         case ConsoleKey.Delete:
                             fm.Delete(new string[0]);
                             break;
 
                         case ConsoleKey.Enter:
-                            fm.GotoParentDirectory();
+                            fm.KeyAction();
                             break;
 
                         case ConsoleKey.LeftArrow:
@@ -53,7 +82,7 @@ namespace GB_FileManager
                             return;
 
                         case ConsoleKey.F5:
-                            //dirInfoL = dirInfoL.Parent ?? dirInfoL;
+                            fm.Copy(new string[0]);
                             break;
 
                     }
@@ -62,6 +91,13 @@ namespace GB_FileManager
                 {
                     string s = fm.UserInputHelp();
                     fm.ExecuteCommand(s);
+                }
+
+                // Сохранение текущего состояния
+                File.Delete(configFileName);
+                using (FileStream fs = new FileStream(configFileName, FileMode.OpenOrCreate))
+                {
+                    await JsonSerializer.SerializeAsync<FMConfig>(fs, fm.Config);
                 }
             }
 
